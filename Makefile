@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+UI?=no
+
 # 
 # Version
 #
@@ -11,8 +13,10 @@ WXVERSION=2.8
 #
 COMMON_SRCS=Samba.cpp Flash.cpp EfcFlash.cpp EefcFlash.cpp FlashFactory.cpp Applet.cpp WordCopyApplet.cpp Flasher.cpp
 APPLET_SRCS=WordCopyArm.asm
+ifeq ($(UI),yes)
 BOSSA_SRCS=BossaForm.cpp BossaWindow.cpp BossaAbout.cpp BossaApp.cpp BossaBitmaps.cpp BossaInfo.cpp BossaThread.cpp BossaProgress.cpp
 BOSSA_BMPS=BossaLogo.bmp BossaIcon.bmp ShumaTechLogo.bmp
+endif
 BOSSAC_SRCS=bossac.cpp CmdOpts.cpp
 BOSSASH_SRCS=bossash.cpp Shell.cpp Command.cpp arm-dis/arm-dis.cpp arm-dis/floatformat.cpp
 
@@ -114,9 +118,11 @@ endif
 #
 COMMON_OBJS=$(foreach src,$(COMMON_SRCS),$(OBJDIR)/$(src:%.cpp=%.o))
 APPLET_OBJS=$(foreach src,$(APPLET_SRCS),$(OBJDIR)/$(src:%.asm=%.o))
+ifeq ($(UI),yes)
 BOSSA_OBJS=$(APPLET_OBJS) $(COMMON_OBJS) $(foreach src,$(BOSSA_SRCS),$(OBJDIR)/$(src:%.cpp=%.o))
 ifdef BOSSA_RC
 BOSSA_OBJS+=$(OBJDIR)/$(BOSSA_RC:%.rc=%.o)
+endif
 endif
 BOSSAC_OBJS=$(APPLET_OBJS) $(COMMON_OBJS) $(foreach src,$(BOSSAC_SRCS),$(OBJDIR)/$(src:%.cpp=%.o))
 BOSSASH_OBJS=$(APPLET_OBJS) $(COMMON_OBJS) $(foreach src,$(BOSSASH_SRCS),$(OBJDIR)/$(src:%.cpp=%.o))
@@ -127,7 +133,9 @@ BOSSASH_OBJS=$(APPLET_OBJS) $(COMMON_OBJS) $(foreach src,$(BOSSASH_SRCS),$(OBJDI
 DEPENDS=$(COMMON_SRCS:%.cpp=$(OBJDIR)/%.d) 
 DEPENDS+=$(APPLET_SRCS:%.asm=$(OBJDIR)/%.d) 
 DEPENDS+=$(BOSSA_SRCS:%.cpp=$(OBJDIR)/%.d) 
+ifeq ($(UI),yes)
 DEPENDS+=$(BOSSAC_SRCS:%.cpp=$(OBJDIR)/%.d) 
+endif
 DEPENDS+=$(BOSSASH_SRCS:%.cpp=$(OBJDIR)/%.d) 
 
 #
@@ -143,8 +151,10 @@ ARMOBJCOPY=$(ARM)objcopy
 # CXX Flags
 #
 COMMON_CXXFLAGS+=-Wall -Werror -MT $@ -MD -MP -MF $(@:%.o=%.d) -DVERSION=\"$(VERSION)\" -g -O2
+ifeq ($(UI),yes)
 WX_CXXFLAGS:=$(shell wx-config --cxxflags --version=$(WXVERSION)) -DWX_PRECOMP -Wno-ctor-dtor-privacy -O2 -fno-strict-aliasing
 BOSSA_CXXFLAGS=$(COMMON_CXXFLAGS) $(WX_CXXFLAGS) 
+endif
 BOSSAC_CXXFLAGS=$(COMMON_CXXFLAGS)
 BOSSASH_CXXFLAGS=$(COMMON_CXXFLAGS) -Isrc/arm-dis
 
@@ -160,15 +170,21 @@ BOSSASH_LDFLAGS=$(COMMON_LDFLAGS)
 # Libs
 #
 COMMON_LIBS+=
+ifeq ($(UI),yes)
 WX_LIBS:=$(shell wx-config --libs --version=$(WXVERSION)) $(WX_LIBS)
 BOSSA_LIBS=$(COMMON_LIBS) $(WX_LIBS)
+endif
 BOSSAC_LIBS=$(COMMON_LIBS)
 BOSSASH_LIBS=-lreadline $(COMMON_LIBS)
 
 #
 # Main targets
 #
+ifeq ($(UI),yes)
 all: $(BINDIR)/bossa$(EXE) $(BINDIR)/bossac$(EXE) $(BINDIR)/bossash$(EXE)
+else
+all: $(BINDIR)/bossac$(EXE) $(BINDIR)/bossash$(EXE)
+endif
 
 #
 # Common rules
@@ -198,12 +214,14 @@ $(foreach src,$(APPLET_SRCS),$(eval $(call applet_obj,$(src))))
 #
 # BOSSA rules
 #
+ifeq ($(UI),yes)
 define bossa_obj
 $(OBJDIR)/$(1:%.cpp=%.o): $(SRCDIR)/$(1)
 	@echo CPP $$<
 	$$(Q)$$(CXX) $$(BOSSA_CXXFLAGS) -c -o $$@ $$<
 endef
 $(foreach src,$(BOSSA_SRCS),$(eval $(call bossa_obj,$(src))))
+endif
 
 #
 # Resource rules
@@ -259,10 +277,12 @@ $(BINDIR):
 #
 # Target rules
 #
+ifeq ($(UI),yes)
 $(BOSSA_OBJS): | $(OBJDIR)
 $(BINDIR)/bossa$(EXE): $(foreach bmp,$(BOSSA_BMPS),$(SRCDIR)/$(bmp:%.bmp=%.cpp)) $(BOSSA_OBJS) | $(BINDIR)
 	@echo LD $@
 	$(Q)$(CXX) $(BOSSA_LDFLAGS) -o $@ $(BOSSA_OBJS) $(BOSSA_LIBS)
+endif
 
 $(BOSSAC_OBJS): | $(OBJDIR)
 $(BINDIR)/bossac$(EXE): $(BOSSAC_OBJS) | $(BINDIR)
