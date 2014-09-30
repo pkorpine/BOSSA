@@ -62,8 +62,8 @@ EefcFlash::EefcFlash(Samba& samba,
       _regs(regs), _canBrownout(canBrownout), _eraseAuto(true)
 {
     assert(planes == 1 || planes == 2);
-    assert(pages <= 1024);
-    assert(lockRegions <= 32);
+    assert(pages <= 2048);
+    assert(lockRegions <= 128);
 
     // SAM3 Errata (FWS must be 6)
     _samba.writeWord(EEFC0_FMR, 0x6 << 8);
@@ -277,8 +277,9 @@ EefcFlash::waitFSR()
     uint32_t tries = 0;
     uint32_t fsr0;
     uint32_t fsr1 = 0x1;
+    const uint32_t TIMEOUT = 5000;
 
-    while (++tries <= 500)
+    while (++tries <= TIMEOUT)
     {
         fsr0 = _samba.readWord(EEFC0_FSR);
         if (fsr0 & (1 << 2))
@@ -294,7 +295,7 @@ EefcFlash::waitFSR()
             break;
         usleep(100);
     }
-    if (tries > 500)
+    if (tries > TIMEOUT)
         throw FlashCmdError();
 }
 
